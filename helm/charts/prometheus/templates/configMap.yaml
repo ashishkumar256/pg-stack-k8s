@@ -4,4 +4,4 @@ metadata:
   name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}-app
   namespace: {{ .Values.app.env }}
 data:
-  NODE_ENV: {{ "1" | quote }}
+  ENV: {{ "1" | quote }}

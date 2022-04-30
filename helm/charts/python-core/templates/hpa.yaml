@@ -1,6 +1,6 @@
 ---
 {{- if or (eq .Values.app.env "prd") (eq .Values.app.env "prf") }}
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}

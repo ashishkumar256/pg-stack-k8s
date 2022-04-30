@@ -5,7 +5,7 @@
 app:
   component: flask
   type: api
-  env: prd
+  env: poc
 
 image:
   repository: ashishkumar256/python-flask
@@ -51,8 +51,7 @@ ingress:
   external:
     host: flask.localdev.me
     rules:
-      - port: 5000
-        host: flask.localdev.me
+      - port: *main
         paths:
           - /get_requests
           - /fibonacci
@@ -62,7 +61,7 @@ ingress:
   internal:
     host: flask-int.localdev.me
     rules:
-      - port: 5000
+      - port: *main
         paths: 
            - /health 
 

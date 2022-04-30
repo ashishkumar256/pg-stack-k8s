@@ -4,13 +4,11 @@
 
 app:
   component: prometheus
-  type: web 
-  env: prd
-
-namespace: production
+  type: web
+  env: poc
 
 image:
-  repository: prom/prometheus 
+  repository: prom/prometheus
   pullPolicy: IfNotPresent
   tag: v2.1.0
   replicaCount:
@@ -28,15 +26,16 @@ image:
 
 nodeSelector: 
   prd: "private-cluster-1"
-  non_prd: SPOT
+  dev: SPOT
+  uat: "private-cluster-1"
 
 resources:
   limits:
-    cpu: 1024m
-    memory: 1Gi
+    cpu: 256m
+    memory: 256Mi
   requests:
-    cpu: 512m
-    memory: 500Mi
+    cpu: 128m
+    memory: 128Mi
 
 autoscaling:
   targetCPUUtilizationPercentage: 60
@@ -44,30 +43,27 @@ autoscaling:
 
 service:
   type: ClusterIP
-  internalPort: &port 9090
-  externalPort: *port
-  name: http
+  ports: 
+    - port: &main 9090
+      name: http
 
 ingress:
-  class:
-    dev: nginx
-    stg: non-prod-nginx
-    prf: non-prod-nginx
-    uat: prod-nginx
-    prd: prod-nginx
-  internal:
-    status: True
-    host: internal-health-pg.devops360.com
-    path: /
   external:
-    status: True
-    host: pg.devops360.com
-    paths:
-      - /*
+    host: prom.localdev.me
+    rules:
+      - port: *main
+        paths:
+          - /
+  internal:
+    host: prom-int.localdev.me
+    rules:
+      - port: *main
+        paths:
+          - /health
 
 health_check:
   httpGet:
     path: /
-    port: *port
+    port: *main
   initialDelaySeconds: 10 
   periodSeconds: 30

@@ -1,18 +1,19 @@
+{{- if index .Values.service "ports" }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
   namespace: {{ .Values.app.env }}
   labels:
-    svc: "{{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}"
-    app: "{{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}"
+    svc: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}
+    app: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}
 spec:
   type: {{ .Values.service.type }}
   ports:
-  - name: {{ .Values.service.name }}
-    port: {{ .Values.service.externalPort }}
-    #nodePort: {{ .Values.service.nodePort }}
-    #targetPort: {{ .Values.service.internalPort }}
-    protocol: TCP
+  {{- range $key, $val := .Values.service.ports }}
+  - name: {{ $val.name }}
+    port: {{ $val.port }}
+  {{- end }}
   selector:
-    pods: "{{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}"
+    pods: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}  
+{{- end }}  

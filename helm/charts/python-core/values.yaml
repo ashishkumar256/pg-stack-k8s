@@ -46,27 +46,25 @@ service:
   ports: 
     - port: &main 8001
       name: http
-    - port: 8000
+    - port: &metrics 8000
       name: metrics
 
 ingress:
-  internal:
-    host: core-int.localdev.me
-    rules:
-      - port: 8001
-        paths:
-          - /health
-          - /
-      - port: 8000
-        paths:
-          - /metrics     
   external:
     host: core.localdev.me
     rules:
-      - port: 8001
-        host: core.localdev.me
+      - port: *main
         paths:
           - /
+  internal:
+    host: core-int.localdev.me
+    rules:
+      - port: *main
+        paths:
+          - /health
+      - port: *metrics
+        paths:
+          - /metrics     
 
 health_check:
   httpGet:

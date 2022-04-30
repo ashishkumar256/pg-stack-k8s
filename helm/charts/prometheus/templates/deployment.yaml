@@ -26,26 +26,30 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configMap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }} 
     spec:
-      {{- if or (eq .Values.app.env "prd") (eq .Values.app.env "uat") }}
+      {{- if and (has .Values.app.env (list "prd" "uat" )) (index .Values.nodeSelector .Values.app.env) }}
       nodeSelector:
-        eks.amazonaws.com/nodegroup: {{ .Values.nodeSelector.prd  }}
-      {{ else if eq .Values.app.env "dev" }}
-        # do nothing
-      {{- else }}
+        eks.amazonaws.com/nodegroup: {{ (pluck .Values.app.env .Values.nodeSelector | first) }}
+      {{- end }}  
+      {{- if and (has .Values.app.env (list "dev" "stg" "prf" )) (index .Values.nodeSelector .Values.app.env) }}
       nodeSelector:
-        eks.amazonaws.com/capacityType: {{ .Values.nodeSelector.non_prd  }}
-      {{- end }}
+        eks.amazonaws.com/capacityType: {{ (pluck .Values.app.env .Values.nodeSelector | first) }}
+      {{- end }}              
       containers:
       - name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if  index .Values.service "ports" }}
         ports:
-        - containerPort: {{ .Values.service.internalPort }}
+        {{- range $key, $val := .Values.service.ports }}
+        - containerPort: {{ $val.port }}
+          name: {{ $val.name }}
+        {{- end }}
+        {{- end }}
         envFrom:
         - configMapRef:
             name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app 
         - secretRef:
-            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-sentry
+            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app
         readinessProbe:
 {{ toYaml .Values.health_check | indent 10 }}
         livenessProbe:

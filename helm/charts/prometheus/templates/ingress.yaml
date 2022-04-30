@@ -1,44 +1,56 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1 
 kind: Ingress
 metadata:
   annotations:
-    kubernetes.io/ingress.class: {{ (pluck .Values.app.env .Values.ingress.class | first) }}
     nginx.ingress.kubernetes.io/use-regex: "true"
-    {{- if .Values.ingress.external.status }}
+    {{- if index .Values.ingress.external "rules" }}
     nginx.ingress.kubernetes.io/server-alias: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}.{{ .Values.app.env }}.svc.cluster.local
     {{- end }}
-  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-ext
   namespace: {{ .Values.app.env }}
 spec:
+  ingressClassName: "nginx"
   rules:
-  - host: "{{ .Values.app.env }}-{{ .Values.ingress.external.host }}"
+  {{- range $key, $val := .Values.ingress.external.rules }}
+  - host: {{ $val.host }}
     http:
       paths:
-      {{- range .Values.ingress.external.paths }}
+      {{- range $val.paths }}
       - path: {{ . }}
+        pathType: Prefix
         backend:
-          serviceName: {{ $.Values.app.env }}-{{ $.Values.global.project }}-{{ $.Values.app.component }}-{{ $.Values.app.type }}
-          servicePort: {{ $.Values.service.externalPort }}
+          service: 
+            name: {{ $.Values.app.env }}-{{ $.Values.global.project }}-{{ $.Values.app.component }}-{{ $.Values.app.type }}
+            port: 
+              number: {{ $val.port }}
       {{- end }}
+  {{- end }}
 
 ---
-{{- if eq .Values.app.env "prd" }}
-apiVersion: extensions/v1beta1
+{{- if or (eq .Values.app.env "prd") (eq .Values.app.env "poc") }}
+apiVersion: networking.k8s.io/v1 
 kind: Ingress
 metadata:
   annotations:
-    kubernetes.io/ingress.class: {{ (pluck .Values.app.env .Values.ingress.class | first) }}
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.health_check.httpGet.path }}
-  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-health
+  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-int
   namespace: {{ .Values.app.env }}
 spec:
+  ingressClassName: "nginx"
   rules:
   - host: {{ .Values.ingress.internal.host }}
     http:
       paths:
-      - path: {{ .Values.ingress.internal.path }}
+      {{- range $key, $val := (concat .Values.ingress.external.rules .Values.ingress.internal.rules) }}
+      {{- range $val.paths }}
+      - path: {{ . }}
+        pathType: Prefix
         backend:
-          serviceName: {{ $.Values.app.env }}-{{ $.Values.global.project }}-{{ $.Values.app.component }}-{{ $.Values.app.type }}
-          servicePort: {{ $.Values.service.externalPort }}
+          service: 
+            name: {{ $.Values.app.env }}-{{ $.Values.global.project }}-{{ $.Values.app.component }}-{{ $.Values.app.type }}
+            port: 
+              number: {{ $val.port }}
+      {{- end }}
+      {{- end }}
 {{- end }}

@@ -63,7 +63,7 @@ spec:
         - configMapRef:
             name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app 
         - secretRef:
-            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-sentry
+            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app
         readinessProbe:
 {{ toYaml .Values.health_check | indent 10 }}
         livenessProbe:
