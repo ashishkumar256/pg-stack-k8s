@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+  namespace: {{ .Values.app.env }}
+  labels:
+    deploy: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+    app: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+  replicas: {{ (pluck .Values.app.env .Values.image.replicaCount | first).min }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        pods: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+        app: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configMap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }} 
+    spec:
+      {{- if or (eq .Values.app.env "prd") (eq .Values.app.env "uat") }}
+      nodeSelector:
+        eks.amazonaws.com/nodegroup: {{ .Values.nodeSelector.prd  }}
+      {{ else if eq .Values.app.env "dev" }}
+        # do nothing
+      {{- else }}
+      nodeSelector:
+        eks.amazonaws.com/capacityType: {{ .Values.nodeSelector.non_prd  }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+        envFrom:
+        - configMapRef:
+            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app 
+        - secretRef:
+            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-sentry
+        readinessProbe:
+{{ toYaml .Values.health_check | indent 10 }}
+        livenessProbe:
+{{ toYaml .Values.health_check | indent 10 }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}

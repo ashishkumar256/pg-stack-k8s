@@ -1,0 +1,44 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: {{ (pluck .Values.app.env .Values.ingress.class | first) }}
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    {{- if .Values.ingress.external.status }}
+    nginx.ingress.kubernetes.io/server-alias: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}.{{ .Values.app.env }}.svc.cluster.local
+    {{- end }}
+  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+  namespace: {{ .Values.app.env }}
+spec:
+  rules:
+  - host: "{{ .Values.app.env }}-{{ .Values.ingress.external.host }}"
+    http:
+      paths:
+      {{- range .Values.ingress.external.paths }}
+      - path: {{ . }}
+        backend:
+          serviceName: {{ $.Values.app.env }}-{{ $.Values.global.project }}-{{ $.Values.app.component }}-{{ $.Values.app.type }}
+          servicePort: {{ $.Values.service.externalPort }}
+      {{- end }}
+
+---
+{{- if eq .Values.app.env "prd" }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: {{ (pluck .Values.app.env .Values.ingress.class | first) }}
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.health_check.httpGet.path }}
+  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-health
+  namespace: {{ .Values.app.env }}
+spec:
+  rules:
+  - host: {{ .Values.ingress.internal.host }}
+    http:
+      paths:
+      - path: {{ .Values.ingress.internal.path }}
+        backend:
+          serviceName: {{ $.Values.app.env }}-{{ $.Values.global.project }}-{{ $.Values.app.component }}-{{ $.Values.app.type }}
+          servicePort: {{ $.Values.service.externalPort }}
+{{- end }}

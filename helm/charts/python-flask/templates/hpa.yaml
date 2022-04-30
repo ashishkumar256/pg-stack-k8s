@@ -1,0 +1,31 @@
+---
+{{- if or (eq .Values.app.env "prd") (eq .Values.app.env "prf") }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+  namespace: {{ .Values.app.env }}
+  labels:
+    app: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+    deploy: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
+  minReplicas: {{ (pluck .Values.app.env .Values.image.replicaCount | first).min }}
+  maxReplicas: {{ (pluck .Values.app.env .Values.image.replicaCount | first).max }}
+  metrics:
+    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

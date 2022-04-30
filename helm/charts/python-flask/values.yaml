@@ -1,0 +1,74 @@
+# Default values for web chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+app:
+  component: flask
+  type: api
+  env: prd
+
+image:
+  repository: ashishkumar256/python-flask
+  pullPolicy: IfNotPresent
+  tag: 1
+  replicaCount:
+    dev: &non-prod
+      min: 1
+      max: 1
+    stg: *non-prod
+    prf:
+      min: 1
+      max: 100
+    uat: *non-prod
+    prd:
+      min: 10
+      max: 50
+
+nodeSelector: 
+  prd: "private-cluster-1"
+  dev: SPOT
+  uat: "private-cluster-1"
+
+resources:
+  limits:
+    cpu: 256m
+    memory: 256Mi
+  requests:
+    cpu: 128m
+    memory: 128Mi
+
+autoscaling:
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 50
+
+service:
+  type: ClusterIP
+  ports: 
+    - port: &main 5000
+      name: http
+
+ingress:
+  external:
+    host: flask.localdev.me
+    rules:
+      - port: 5000
+        host: flask.localdev.me
+        paths:
+          - /get_requests
+          - /fibonacci
+          - /power
+          - /factorial
+          - /
+  internal:
+    host: flask-int.localdev.me
+    rules:
+      - port: 5000
+        paths: 
+           - /health 
+
+health_check:
+  httpGet:
+    path: /
+    port: *main
+  initialDelaySeconds: 10 
+  periodSeconds: 30

@@ -1,0 +1,76 @@
+# Default values for web chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+app:
+  component: core
+  type: api
+  env: poc
+
+image:
+  repository: ashishkumar256/python-core
+  pullPolicy: IfNotPresent
+  tag: 1
+  replicaCount:
+    dev: &non-prod
+      min: 1
+      max: 1
+    stg: *non-prod
+    prf:
+      min: 1
+      max: 100
+    uat: *non-prod
+    prd:
+      min: 10
+      max: 50
+
+nodeSelector: 
+  prd: "private-cluster-1"
+  dev: SPOT
+  uat: "private-cluster-1"
+
+resources:
+  limits:
+    cpu: 256m
+    memory: 256Mi
+  requests:
+    cpu: 128m
+    memory: 128Mi
+
+autoscaling:
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 50
+
+service:
+  type: ClusterIP
+  ports: 
+    - port: &main 8001
+      name: http
+    - port: 8000
+      name: metrics
+
+ingress:
+  internal:
+    host: core-int.localdev.me
+    rules:
+      - port: 8001
+        paths:
+          - /health
+          - /
+      - port: 8000
+        paths:
+          - /metrics     
+  external:
+    host: core.localdev.me
+    rules:
+      - port: 8001
+        host: core.localdev.me
+        paths:
+          - /
+
+health_check:
+  httpGet:
+    path: /
+    port: *main
+  initialDelaySeconds: 10 
+  periodSeconds: 30
