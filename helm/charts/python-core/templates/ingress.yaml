@@ -11,10 +11,10 @@ metadata:
 spec:
   ingressClassName: "nginx"
   rules:
-  {{- range $key, $val := .Values.ingress.external.rules }}
-  - host: {{ $val.host }}
+  - host: {{ .Values.ingress.external.host }}
     http:
       paths:
+      {{- range $key, $val := .Values.ingress.external.rules }}
       {{- range $val.paths }}
       - path: {{ . }}
         pathType: Prefix
@@ -24,7 +24,7 @@ spec:
             port: 
               number: {{ $val.port }}
       {{- end }}
-  {{- end }}
+      {{- end }}
 
 ---
 {{- if or (eq .Values.app.env "prd") (eq .Values.app.env "poc") }}
