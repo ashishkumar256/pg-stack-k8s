@@ -33,11 +33,22 @@ spec:
       {{- if and (has .Values.app.env (list "dev" "stg" "prf" )) (index .Values.nodeSelector .Values.app.env) }}
       nodeSelector:
         eks.amazonaws.com/capacityType: {{ (pluck .Values.app.env .Values.nodeSelector | first) }}
-      {{- end }}              
+      {{- end }}
+      # initContainers:
+      # - name: init-container
+      #   image: alpine
+      #   command: ["ls -ld /prometheus"]
+      #   volumeMounts:
+      #     - name: prom-vol
+      #       mountPath: /prometheus
+      securityContext:
+         runAsUser: 0
       containers:
       - name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/prometheus"]
+        args: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--web.console.libraries=/usr/share/prometheus/console_libraries", "--web.console.templates=/usr/share/prometheus/consoles", "--web.external-url=http://localhost/prometheus"]
         {{- if  index .Values.service "ports" }}
         ports:
         {{- range $key, $val := .Values.service.ports }}
@@ -46,8 +57,6 @@ spec:
         {{- end }}
         {{- end }}
         envFrom:
-        - configMapRef:
-            name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app 
         - secretRef:
             name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type }}-app
         readinessProbe:
@@ -56,3 +65,18 @@ spec:
 {{ toYaml .Values.health_check | indent 10 }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
+        volumeMounts:
+         - name: prom-vol
+           mountPath: /prometheus
+         #- name: prometheus-conf-vol
+         #  mountPath: /etc/prometheus
+      volumes:
+        - name: prom-vol
+          hostPath:
+            path: /prometheus
+        #- name: prometheus-conf-vol
+        #  configMap:
+        #    name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}-app
+        #    items:
+        #      - key: prometheus.yml
+        #        path: prometheus.yml

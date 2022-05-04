@@ -4,4 +4,38 @@ metadata:
   name: {{ .Values.app.env }}-{{ .Values.global.project }}-{{ .Values.app.component }}-{{ .Values.app.type  }}-app
   namespace: {{ .Values.app.env }}
 data:
-  ENV: {{ "1" | quote }}
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      #external_labels:
+      #  monitor: "username-monitor"
+    
+    rule_files:
+      - rules.yaml
+    
+       # Alerting specifies settings related to the Alertmanager
+    alerting:
+      alertmanagers:
+        - static_configs:
+          - targets:
+            # Alertmanager's default port is 9093
+            - localhost:9093
+    
+    scrape_configs:
+      - job_name: "Prometheus"
+        static_configs:
+          - targets: ['127.0.0.1:9090']
+    
+      - job_name: "Python-Flask"
+        dns_sd_configs:
+          - names: ["python-flask"]
+            port: 5000
+            type: A
+            refresh_interval: 5s
+    
+      - job_name: "Python-Core"
+        dns_sd_configs:
+          - names: ["python-core"]
+            port: 8000
+            type: A
+            refresh_interval: 5s

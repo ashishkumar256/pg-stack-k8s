@@ -31,11 +31,11 @@ nodeSelector:
 
 resources:
   limits:
-    cpu: 256m
-    memory: 256Mi
+    cpu: 2048m
+    memory: 4096Mi
   requests:
-    cpu: 128m
-    memory: 128Mi
+    cpu: 1024m
+    memory: 2048Mi
 
 autoscaling:
   targetCPUUtilizationPercentage: 60
